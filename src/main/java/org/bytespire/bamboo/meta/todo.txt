@@ -1,0 +1,2 @@
+1. metadata can be stored in db instead of blob storage. have interface and impl for this functionality
+2. stats on the number of files written, time taken to write, etc. can be stored in db
