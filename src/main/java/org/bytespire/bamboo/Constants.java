@@ -9,6 +9,7 @@ public class Constants {
   public static final String PATH = "path";
   public static final String PARENT_PATH = "parent_path";
   public static final String PARENT_HASH = "parent_id";
+  public static final String COLUMN_TYPES = "column_types";
   public static final String FORMAT = "format";
   public static final String ROW_ID = BAMBOO_PREFIX + "rid";
 

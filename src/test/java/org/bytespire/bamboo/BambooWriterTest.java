@@ -22,6 +22,13 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class BambooWriterTest {
+
+  static Kolumn colA = new Kolumn("colA", DataTypes.StringType);
+  static Kolumn colB = new Kolumn("colB", DataTypes.StringType);
+  static Kolumn colC = new Kolumn("colC", DataTypes.StringType);
+  static Kolumn colD = new Kolumn("colD", DataTypes.StringType);
+  static Kolumn colE = new Kolumn("colE", DataTypes.IntegerType);
+
   @Before
   public void setUp() throws IOException {
     FileUtils.deleteDirectory(new File("/tmp/bamboo"));
@@ -50,8 +57,8 @@ public class BambooWriterTest {
           .mode(SaveMode.Overwrite)
           .format("parquet")
           .writeZionCf(false)
-          .columnFamily(new ColumnFamily("cf1", Arrays.asList("colA", "colB")))
-          .columnFamily(new ColumnFamily("cf2", Arrays.asList("colC")))
+          .columnFamily(new ColumnFamily("cf1", Arrays.asList(colA, colB)))
+          .columnFamily(new ColumnFamily("cf2", Arrays.asList(colC)))
           .save(outputPath);
 
       // verify metadata written
@@ -138,8 +145,8 @@ public class BambooWriterTest {
           .mode(SaveMode.Overwrite)
           .format("parquet")
           .writeZionCf(true)
-          .columnFamily(new ColumnFamily("cf1", Arrays.asList("colA", "colB")))
-          .columnFamily(new ColumnFamily("cf2", Arrays.asList("colC")))
+          .columnFamily(new ColumnFamily("cf1", Arrays.asList(colA, colB)))
+          .columnFamily(new ColumnFamily("cf2", Arrays.asList(colC)))
           .save(outputPath);
 
       // verify metadata written
@@ -285,7 +292,7 @@ public class BambooWriterTest {
       Bamboo.write(spark, inputDataset)
           .mode(SaveMode.Overwrite)
           .format("parquet")
-          .columnFamily(new ColumnFamily("cf1", Arrays.asList("colA", "colB")))
+          .columnFamily(new ColumnFamily("cf1", Arrays.asList(colA, colB)))
           .save(outputPath);
 
       // try append with column families
@@ -296,7 +303,7 @@ public class BambooWriterTest {
               .mode(SaveMode.Append)
               .format("parquet")
               .writeZionCf(writeZion)
-              .columnFamily(new ColumnFamily("cf1", Arrays.asList("colA", "colB")))
+              .columnFamily(new ColumnFamily("cf1", Arrays.asList(colA, colB)))
               .save(outputPath);
           Assert.fail(
               "append to existing dataset with column families Should have thrown IllegalArgumentException");
@@ -376,7 +383,7 @@ public class BambooWriterTest {
           .mode(SaveMode.Overwrite)
           .writeZionCf(true)
           .format("parquet")
-          .columnFamily(new ColumnFamily("cf1", Arrays.asList("colA", "colB")))
+          .columnFamily(new ColumnFamily("cf1", Arrays.asList(colA, colB)))
           .save(outputPath);
 
       // try append with column families
@@ -387,7 +394,7 @@ public class BambooWriterTest {
               .mode(SaveMode.Append)
               .format("parquet")
               .writeZionCf(writeZion)
-              .columnFamily(new ColumnFamily("cf1", Arrays.asList("colA", "colB")))
+              .columnFamily(new ColumnFamily("cf1", Arrays.asList(colA, colB)))
               .save(outputPath);
           Assert.fail(
               "append to existing dataset with column families Should have thrown IllegalArgumentException");
@@ -502,7 +509,7 @@ public class BambooWriterTest {
           .mode(SaveMode.Ignore)
           .format("parquet")
           .writeZionCf(true)
-          .columnFamily(new ColumnFamily("cf1", Arrays.asList("colA", "colB")))
+          .columnFamily(new ColumnFamily("cf1", Arrays.asList(colA, colB)))
           .save(outputPath);
 
       File file2 =
@@ -518,7 +525,7 @@ public class BambooWriterTest {
             .mode(SaveMode.ErrorIfExists)
             .format("parquet")
             .writeZionCf(true)
-            .columnFamily(new ColumnFamily("cf1", Arrays.asList("colA", "colB")))
+            .columnFamily(new ColumnFamily("cf1", Arrays.asList(colA, colB)))
             .save(outputPath);
         Assert.fail("Should have thrown IllegalStateException");
       } catch (IllegalStateException expected) {
@@ -542,7 +549,7 @@ public class BambooWriterTest {
               .mode(SaveMode.Overwrite)
               .format("parquet")
               .writeZionCf(true)
-              .columnFamily(new ColumnFamily("cf1", Arrays.asList("colA", "colB")))
+              .columnFamily(new ColumnFamily("cf1", Arrays.asList(colA, colB)))
               .save(path);
           Assert.fail("Should have thrown IllegalArgumentException");
         } catch (IllegalArgumentException expected) {

@@ -3,6 +3,7 @@ package org.bytespire.bamboo;
 import static org.apache.logging.log4j.LogManager.getLogger;
 import static org.bytespire.bamboo.Bamboo.METADATA_FORMAT;
 import static org.bytespire.bamboo.Constants.ROW_ID;
+import static org.bytespire.bamboo.Kolumn.ROW_ID_COLUMN;
 import static org.bytespire.bamboo.Utils.hashOfColumn;
 
 import java.io.File;
@@ -11,11 +12,13 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.Logger;
 import org.apache.spark.sql.*;
+import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.StructType;
 import org.apache.spark.storage.StorageLevel;
 
 public class BambooWriter {
   private final SparkSession spark;
-  private final Set<String> srcDfColumnNames = new LinkedHashSet<>();
+  private final Set<Kolumn> srcDfColumns = new LinkedHashSet<>();
   private SaveMode saveMode = SaveMode.Overwrite;
   private Dataset<Row> dataToWrite;
   private boolean writeZionCf = false;
@@ -27,8 +30,10 @@ public class BambooWriter {
   BambooWriter(SparkSession spark, Dataset<Row> dataToWrite) {
     this.dataToWrite = dataToWrite;
     this.spark = spark;
-    for (String column : dataToWrite.columns()) {
-      srcDfColumnNames.add(column.toLowerCase());
+    StructType schema = dataToWrite.schema();
+    for (String columnName : dataToWrite.columns()) {
+      DataType columnType = schema.apply(columnName).dataType();
+      srcDfColumns.add(new Kolumn(columnName, columnType));
     }
   }
 
@@ -59,22 +64,21 @@ public class BambooWriter {
     if (columnFamily == null) {
       return this;
     }
-    if (columnFamily.getColumnNames().isEmpty()) {
+    if (columnFamily.getColumns().isEmpty()) {
       throw new IllegalArgumentException(
           "Column family " + columnFamily.getName() + " has no columns to write.");
     }
-    List<String> columnsInFamily =
-        columnFamily.getColumnNames().stream()
-            .map(String::toLowerCase)
-            .collect(Collectors.toList());
-    for (String column : columnsInFamily) {
-      if (!srcDfColumnNames.contains(column.toLowerCase())) {
-        throw new IllegalArgumentException("Column " + column + " not found in the input dataset.");
+
+    for (Kolumn kolumn : columnFamily.getColumns()) {
+      if (!srcDfColumns.contains(kolumn)) {
+        throw new IllegalArgumentException("Column " + kolumn + " not found in the input dataset.");
       }
     }
+    List<Kolumn> copy = new ArrayList<>(columnFamily.getColumns());
+    copy.add(ROW_ID_COLUMN);
 
-    columnsInFamily.add(ROW_ID);
-    columnFamiliesToWrite.add(new ColumnFamily(columnFamily.getName(), columnsInFamily));
+    columnFamiliesToWrite.add(
+        new ColumnFamily(columnFamily.getName(), Collections.unmodifiableList(copy)));
     return this;
   }
 
@@ -100,9 +104,10 @@ public class BambooWriter {
       Dataset<Row> colFams =
           spark.sql(
               String.format(
-                  "select %s, %s, %s, %s, %s from existingMetaData",
+                  "select %s, %s, %s, %s, %s, %s from existingMetaData",
                   Constants.COLUMN_FAMILY_NAME,
                   Constants.COLUMNS,
+                  Constants.COLUMN_TYPES,
                   Constants.PATH,
                   Constants.FORMAT,
                   Constants.PARENT_PATH));
@@ -111,12 +116,16 @@ public class BambooWriter {
       List<Row> rows = colFams.collectAsList();
       for (Row row : rows) {
         String cfName = row.getString(0);
-        // List<String> columns = Arrays.asList((String[]) row.getList(1).toArray());
-        List<String> columns = scala.collection.JavaConverters.seqAsJavaList(row.getSeq(1));
-        ColumnFamily cf = new ColumnFamily(cfName, columns);
-        cf.setPath(row.getString(2));
-        cf.setFormat(row.getString(3));
-        cf.setParentPath(row.getString(4));
+        List<String> columnNames = scala.collection.JavaConverters.seqAsJavaList(row.getSeq(1));
+        List<String> columnTypes = scala.collection.JavaConverters.seqAsJavaList(row.getSeq(2));
+        List<Kolumn> kolumns = new ArrayList<>();
+        for (int i = 0; i < columnNames.size(); i++) {
+          kolumns.add(new Kolumn(columnNames.get(i), DataType.fromJson(columnTypes.get(i))));
+        }
+        ColumnFamily cf = new ColumnFamily(cfName, kolumns);
+        cf.setPath(row.getString(3));
+        cf.setFormat(row.getString(4));
+        cf.setParentPath(row.getString(5));
         existingColumnFamilies.add(cf);
       }
       columnFamiliesToWrite.addAll(existingColumnFamilies);
@@ -167,7 +176,9 @@ public class BambooWriter {
     dataToWrite.createOrReplaceTempView(viewName);
 
     for (ColumnFamily cf : columnFamiliesToWrite) {
-      String cols = String.join(",", cf.getColumnNames());
+      List<String> columnNames =
+          cf.getColumns().stream().map(Kolumn::getName).collect(Collectors.toList());
+      String cols = String.join(",", columnNames);
       Dataset<Row> columnFamilyDf = spark.sql("select " + cols + " from " + viewName);
       Utils.debugDataFrame(columnFamilyDf, "col_family_" + cf.getName());
       columnFamilyDf.write().format(cf.getFormat()).mode(saveMode).save(cf.getPath());
@@ -185,7 +196,7 @@ public class BambooWriter {
   private void prepareColumnFamiliesForWriting(String parentDfPath) {
     // set paths
     if (columnFamiliesToWrite.isEmpty()) {
-      ColumnFamily zionCf = new ColumnFamily(Constants.ZION_CF, new ArrayList<>(srcDfColumnNames));
+      ColumnFamily zionCf = new ColumnFamily(Constants.ZION_CF, new ArrayList<>(srcDfColumns));
       columnFamiliesToWrite.add(zionCf);
       logger.warn(
           "No column families specified to write. Writing all columns to zion column family.");
@@ -199,8 +210,7 @@ public class BambooWriter {
           }
         }
         if (!zionCfExists) {
-          ColumnFamily zionCf =
-              new ColumnFamily(Constants.ZION_CF, new ArrayList<>(srcDfColumnNames));
+          ColumnFamily zionCf = new ColumnFamily(Constants.ZION_CF, new ArrayList<>(srcDfColumns));
           columnFamiliesToWrite.add(zionCf);
           logger.info("As instructed, Writing all columns to zion column family.");
         }
@@ -229,10 +239,11 @@ public class BambooWriter {
               cf.getPath(),
               cf.getFormat(),
               cf.getName(),
-              cf.getColumnNames().size(),
-              cf.getColumnNames().toArray(),
+              cf.getColumns().size(),
+              cf.getColumns().stream().map(Kolumn::getName).collect(Collectors.toList()),
               cf.getParentPath(),
-              Utils.getPathId(parentDfPath)));
+              Utils.getPathId(parentDfPath),
+              cf.getColumns().stream().map(Kolumn::getTypeJson).collect(Collectors.toList())));
     }
 
     Dataset<Row> metaData = spark.createDataFrame(rows, Bamboo.getBambooMetaSchema());

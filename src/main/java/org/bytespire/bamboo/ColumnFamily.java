@@ -6,25 +6,25 @@ import org.apache.commons.lang3.StringUtils;
 /** ColumnFamily represents a collection of columns in a table. */
 public class ColumnFamily {
   private final String name;
-  private final List<String> columnNames;
+  private final List<Kolumn> kolumns;
   private String path;
 
   private String format = "parquet";
   private String parentPath;
 
-  public ColumnFamily(String name, List<String> columns) {
-    this(name, columns, "parquet");
+  public ColumnFamily(String name, List<Kolumn> kolumns) {
+    this(name, kolumns, "parquet");
   }
 
-  public ColumnFamily(String name, List<String> columns, String format) {
+  public ColumnFamily(String name, List<Kolumn> kolumns, String format) {
     if (StringUtils.isBlank(name)) {
       throw new IllegalArgumentException("Column family name cannot be null or empty");
     }
-    if (columns == null || columns.isEmpty()) {
+    if (kolumns == null || kolumns.isEmpty()) {
       throw new IllegalArgumentException("list of Columns in family cannot be null or empty");
     }
     this.name = name;
-    this.columnNames = (columns);
+    this.kolumns = (kolumns);
     this.format = format;
   }
 
@@ -32,8 +32,8 @@ public class ColumnFamily {
     return name;
   }
 
-  public List<String> getColumnNames() {
-    return columnNames;
+  public List<Kolumn> getColumns() {
+    return kolumns;
   }
 
   public String getPath() {
@@ -67,7 +67,7 @@ public class ColumnFamily {
         + name
         + '\''
         + ", columnNames="
-        + columnNames
+        + kolumns
         + ", path='"
         + path
         + '\''

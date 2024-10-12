@@ -11,6 +11,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.types.DataType;
 import org.bytespire.bamboo.stats.ReporterException;
 
 public class BambooReader {
@@ -59,7 +60,9 @@ public class BambooReader {
       // choose one parentDfPath and get all the columnFams for that path.
       List<ColumnFamily> columnFamilyList = new ArrayList<>(columnFamiliesPerPath.values()).get(0);
       for (ColumnFamily cf : columnFamilyList) {
-        uniqColsInData.addAll(cf.getColumnNames());
+        List<String> columnNames =
+            cf.getColumns().stream().map(Kolumn::getName).collect(Collectors.toList());
+        uniqColsInData.addAll(columnNames);
       }
       uniqColsInData.remove(Constants.ROW_ID);
       columnsToRead.addAll(uniqColsInData);
@@ -86,6 +89,7 @@ public class BambooReader {
     Utils.debugDataFrame(toReturn, "reconstructed_for_read");
 
     try {
+      // todo fix null columns in reporter
       statsReporter.report(path, null, columnFamiliesToLoad);
     } catch (ReporterException e) {
       logger.warn("Failed to collect stats for read.", e);
@@ -107,11 +111,15 @@ public class BambooReader {
       if (Utils.isZionColumnFamily(cf)) {
         continue;
       }
-      if (new HashSet<>(cf.getColumnNames()).containsAll(columnsToRead)) {
+
+      List<String> columnNamesInCf =
+          cf.getColumns().stream().map(Kolumn::getName).collect(Collectors.toList());
+
+      if (new HashSet<>(columnNamesInCf).containsAll(columnsToRead)) {
         if (optimalNonZionCf == null) {
           optimalNonZionCf = cf;
         } else {
-          if (optimalNonZionCf.getColumnNames().size() > cf.getColumnNames().size()) {
+          if (optimalNonZionCf.getColumns().size() > cf.getColumns().size()) {
             optimalNonZionCf = cf;
           }
         }
@@ -151,8 +159,13 @@ public class BambooReader {
       String parentPath = row.getAs(Constants.PARENT_PATH);
       List<String> columns =
           scala.collection.JavaConverters.seqAsJavaList(row.getAs(Constants.COLUMNS));
-
-      ColumnFamily columnFamily = new ColumnFamily(columnFamilyName, columns, format);
+      List<String> columnTypes =
+          scala.collection.JavaConverters.seqAsJavaList(row.getAs(Constants.COLUMN_TYPES));
+      List<Kolumn> kolumns = new ArrayList<>();
+      for (int i = 0; i < columns.size(); i++) {
+        kolumns.add(new Kolumn(columns.get(i), DataType.fromJson(columnTypes.get(i))));
+      }
+      ColumnFamily columnFamily = new ColumnFamily(columnFamilyName, kolumns, format);
       columnFamily.setFormat(format);
       columnFamily.setParentPath(parentPath);
       columnFamily.setPath(columnFamilyPath);
@@ -171,12 +184,14 @@ public class BambooReader {
     for (String columnToRead : columnsToRead) {
       // handle rid column
       for (ColumnFamily candidateCf : columnFamiliesInMeta) {
-        if (candidateCf.getColumnNames().contains(columnToRead)) {
+        List<String> columnNamesInCf =
+            candidateCf.getColumns().stream().map(Kolumn::getName).collect(Collectors.toList());
+        if (columnNamesInCf.contains(columnToRead)) {
           ColumnFamily prevCandidate = bestCandidateCfForColumn.getOrDefault(columnToRead, null);
           if (prevCandidate == null) {
             bestCandidateCfForColumn.put(columnToRead, candidateCf);
           } else {
-            if (prevCandidate.getColumnNames().size() > candidateCf.getColumnNames().size()) {
+            if (prevCandidate.getColumns().size() > candidateCf.getColumns().size()) {
               bestCandidateCfForColumn.put(columnToRead, candidateCf);
             }
             // todo in case of tie of number of columns choose smaller datatypes ?
@@ -209,7 +224,9 @@ public class BambooReader {
     // if a candidate cf for a column contains all the columnsToRead, then we should load that cf
     // only.
     for (ColumnFamily bestCandidateCf : candidateCfForColumn.values()) {
-      HashSet<String> colsInCandidateCf = new HashSet<>(bestCandidateCf.getColumnNames());
+      List<String> columnNamesInCf =
+          bestCandidateCf.getColumns().stream().map(Kolumn::getName).collect(Collectors.toList());
+      HashSet<String> colsInCandidateCf = new HashSet<>(columnNamesInCf);
       if (colsInCandidateCf.containsAll(columnsToRead)) {
         return Collections.singletonList(bestCandidateCf);
       }
@@ -249,14 +266,17 @@ public class BambooReader {
     // number of cfs and names of cfs are consistent across paths. Now check for column names in
     // each cf across paths
     for (String cfName : cfNames) {
-      Set<String> columnsInCf = null;
+      Set<String> columnNamesInCf = null;
       for (List<ColumnFamily> columnFamilies : columnFamiliesPerPath.values()) {
         Optional<ColumnFamily> cf =
             columnFamilies.stream().filter(c -> c.getName().equals(cfName)).findFirst();
-        if (columnsInCf == null) {
-          columnsInCf = new HashSet<>(cf.get().getColumnNames());
+        List<String> colNamesInCf =
+            cf.get().getColumns().stream().map(Kolumn::getName).collect(Collectors.toList());
+
+        if (columnNamesInCf == null) {
+          columnNamesInCf = new HashSet<>(colNamesInCf);
         } else {
-          if (!columnsInCf.equals(new HashSet<>(cf.get().getColumnNames()))) {
+          if (!columnNamesInCf.equals(new HashSet<>(colNamesInCf))) {
             throw new IllegalStateException(
                 "Column families across paths are not consistent. They differ in column names of column families");
           }

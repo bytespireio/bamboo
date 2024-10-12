@@ -1,7 +1,6 @@
 package org.bytespire.bamboo;
 
-import static org.bytespire.bamboo.BambooWriterTest.sampleDataset;
-import static org.bytespire.bamboo.BambooWriterTest.sampleSchema;
+import static org.bytespire.bamboo.BambooWriterTest.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -84,8 +83,8 @@ public class BambooReaderTest {
           .mode(SaveMode.Overwrite)
           .format("parquet")
           .writeZionCf(false)
-          .columnFamily(new ColumnFamily("cf1", Arrays.asList("colA", "colB")))
-          .columnFamily(new ColumnFamily("cf2", Arrays.asList("colC")))
+          .columnFamily(new ColumnFamily("cf1", Arrays.asList(colA, colB)))
+          .columnFamily(new ColumnFamily("cf2", Arrays.asList(colC)))
           .save(outputPath);
       try {
         Bamboo.read(spark).format("does_not_matter").columns("x", "colA").load(outputPath);
@@ -105,8 +104,8 @@ public class BambooReaderTest {
           .mode(SaveMode.Overwrite)
           .format("parquet")
           .writeZionCf(true)
-          .columnFamily(new ColumnFamily("cf1", Arrays.asList("colA", "colB")))
-          .columnFamily(new ColumnFamily("cf2", Arrays.asList("colC")))
+          .columnFamily(new ColumnFamily("cf1", Arrays.asList(colA, colB)))
+          .columnFamily(new ColumnFamily("cf2", Arrays.asList(colC)))
           .save(outputPath);
 
       Dataset<Row> result = Bamboo.read(spark).format("does_not_matter").load(outputPath);
@@ -132,8 +131,8 @@ public class BambooReaderTest {
           .mode(SaveMode.Overwrite)
           .format("parquet")
           .writeZionCf(false)
-          .columnFamily(new ColumnFamily("cf1", Arrays.asList("colA", "colB")))
-          .columnFamily(new ColumnFamily("cf2", Arrays.asList("colC")))
+          .columnFamily(new ColumnFamily("cf1", Arrays.asList(colA, colB)))
+          .columnFamily(new ColumnFamily("cf2", Arrays.asList(colC)))
           .save(outputPath);
 
       Dataset<Row> result = Bamboo.read(spark).format("does_not_matter").load(outputPath);
@@ -162,8 +161,8 @@ public class BambooReaderTest {
           .mode(SaveMode.Overwrite)
           .format("parquet")
           .writeZionCf(true)
-          .columnFamily(new ColumnFamily("cf1", Arrays.asList("colA", "colB")))
-          .columnFamily(new ColumnFamily("cf2", Arrays.asList("colC")))
+          .columnFamily(new ColumnFamily("cf1", Arrays.asList(colA, colB)))
+          .columnFamily(new ColumnFamily("cf2", Arrays.asList(colC)))
           .save(outputPath);
 
       Dataset<Row> result =
@@ -207,9 +206,9 @@ public class BambooReaderTest {
           .mode(SaveMode.Overwrite)
           .format("parquet")
           .writeZionCf(true)
-          .columnFamily(new ColumnFamily("cab", Arrays.asList("colA", "colB")))
-          .columnFamily(new ColumnFamily("cabc", Arrays.asList("colA", "colB", "colC")))
-          .columnFamily(new ColumnFamily("cd", Arrays.asList("colD")))
+          .columnFamily(new ColumnFamily("cab", Arrays.asList(colA, colB)))
+          .columnFamily(new ColumnFamily("cabc", Arrays.asList(colA, colB, colC)))
+          .columnFamily(new ColumnFamily("cd", Arrays.asList(colD)))
           .save(outputPath);
 
       Dataset<Row> result =
@@ -230,7 +229,7 @@ public class BambooReaderTest {
 
     List<Row> rows = new ArrayList<>();
     for (int i = 0; i < 2; i++) {
-      rows.add(RowFactory.create("a" + i, "b" + i, "c" + i, "d" + i, "e" + i));
+      rows.add(RowFactory.create("a" + i, "b" + i, "c" + i, "d" + i, i));
     }
 
     // ;
@@ -247,17 +246,22 @@ public class BambooReaderTest {
                     DataTypes.createStructField("colB", DataTypes.StringType, false),
                     DataTypes.createStructField("colC", DataTypes.StringType, false),
                     DataTypes.createStructField("colD", DataTypes.StringType, false),
-                    DataTypes.createStructField("colE", DataTypes.StringType, false)
+                    DataTypes.createStructField("colE", DataTypes.IntegerType, false)
                   }));
 
       Bamboo.write(spark, sample)
           .mode(SaveMode.Overwrite)
           .format("parquet")
           .writeZionCf(true)
-          .columnFamily(new ColumnFamily("cab", Arrays.asList("colA", "colB")))
-          .columnFamily(new ColumnFamily("cabd", Arrays.asList("colA", "colB", "colD")))
-          .columnFamily(new ColumnFamily("cabde", Arrays.asList("colA", "colB", "colD", "colE")))
-          .columnFamily(new ColumnFamily("cd", Arrays.asList("colD")))
+          //          .columnFamily(new ColumnFamily("cab", Arrays.asList("colA", "colB")))
+          //          .columnFamily(new ColumnFamily("cabd", Arrays.asList("colA", "colB", "colD")))
+          //          .columnFamily(new ColumnFamily("cabde", Arrays.asList("colA", "colB", "colD",
+          // "colE")))
+          //          .columnFamily(new ColumnFamily("cd", Arrays.asList("colD")))
+          .columnFamily(new ColumnFamily("cab", Arrays.asList(colA, colB)))
+          .columnFamily(new ColumnFamily("cabd", Arrays.asList(colA, colB, colD)))
+          .columnFamily(new ColumnFamily("cabde", Arrays.asList(colA, colB, colD, colE)))
+          .columnFamily(new ColumnFamily("cd", Arrays.asList(colD)))
           .save(outputPath);
 
       Dataset<Row> result =
@@ -286,8 +290,8 @@ public class BambooReaderTest {
           .mode(SaveMode.Overwrite)
           .format("parquet")
           .writeZionCf(false)
-          .columnFamily(new ColumnFamily("cf1", Arrays.asList("colA", "colB")))
-          .columnFamily(new ColumnFamily("cf2", Arrays.asList("colC")))
+          .columnFamily(new ColumnFamily("cf1", Arrays.asList(colA, colB)))
+          .columnFamily(new ColumnFamily("cf2", Arrays.asList(colC)))
           .save(outputPath);
 
       try {
@@ -316,8 +320,7 @@ public class BambooReaderTest {
           .mode(SaveMode.Overwrite)
           .format("parquet")
           .writeZionCf(false)
-          .columnFamily(new ColumnFamily("cf1", Arrays.asList("colA", "colB")))
-          // .columnFamily(new ColumnFamily("cf2", Arrays.asList("colC")))
+          .columnFamily(new ColumnFamily("cf1", Arrays.asList(colA, colB)))
           .save(outputPath);
 
       try {
@@ -346,15 +349,15 @@ public class BambooReaderTest {
       Bamboo.write(spark, spark.createDataFrame(rows1, sampleSchema))
           .mode(SaveMode.Overwrite)
           .format("parquet")
-          .columnFamily(new ColumnFamily("cf1", Arrays.asList("colA", "colB")))
-          .columnFamily(new ColumnFamily("cf2", Arrays.asList("colC")))
+          .columnFamily(new ColumnFamily("cf1", Arrays.asList(colA, colB)))
+          .columnFamily(new ColumnFamily("cf2", Arrays.asList(colC)))
           .save(outputPath + "/part1");
 
       Bamboo.write(spark, spark.createDataFrame(rows2, sampleSchema))
           .mode(SaveMode.Overwrite)
           .format("parquet")
-          .columnFamily(new ColumnFamily("cf1", Arrays.asList("colA", "colB")))
-          .columnFamily(new ColumnFamily("cf2", Arrays.asList("colC")))
+          .columnFamily(new ColumnFamily("cf1", Arrays.asList(colA, colB)))
+          .columnFamily(new ColumnFamily("cf2", Arrays.asList(colC)))
           .save(outputPath + "/part2");
 
       Dataset<Row> result =
@@ -397,7 +400,7 @@ public class BambooReaderTest {
                   rows1, new StructType().add("colA", DataTypes.StringType, false)))
           .mode(SaveMode.Overwrite)
           .format("parquet")
-          .columnFamily(new ColumnFamily("cf1", Arrays.asList("colA")))
+          .columnFamily(new ColumnFamily("cf1", Arrays.asList(colA)))
           .save(outputPath + "/part1");
 
       Bamboo.write(
@@ -406,7 +409,7 @@ public class BambooReaderTest {
                   rows2, new StructType().add("colB", DataTypes.StringType, false)))
           .mode(SaveMode.Overwrite)
           .format("parquet")
-          .columnFamily(new ColumnFamily("cf1", Arrays.asList("colB")))
+          .columnFamily(new ColumnFamily("cf1", Arrays.asList(colB)))
           .save(outputPath + "/part2");
 
       try {
@@ -433,8 +436,8 @@ public class BambooReaderTest {
       Bamboo.write(spark, sampleDataset(spark))
           .mode(SaveMode.Overwrite)
           .format("parquet")
-          .columnFamily(new ColumnFamily("cf1", Arrays.asList("colA")))
-          .columnFamily(new ColumnFamily("cf2", Arrays.asList("colB")))
+          .columnFamily(new ColumnFamily("cf1", Arrays.asList(colA)))
+          .columnFamily(new ColumnFamily("cf2", Arrays.asList(colB)))
           .save(outputPath + "/part1");
 
       Bamboo.write(
@@ -443,7 +446,7 @@ public class BambooReaderTest {
                   rows2, new StructType().add("colB", DataTypes.StringType, false)))
           .mode(SaveMode.Overwrite)
           .format("parquet")
-          .columnFamily(new ColumnFamily("cf1", Arrays.asList("colB")))
+          .columnFamily(new ColumnFamily("cf1", Arrays.asList(colB)))
           .save(outputPath + "/part2");
 
       try {
@@ -474,7 +477,7 @@ public class BambooReaderTest {
                   rows1, new StructType().add("colA", DataTypes.StringType, false)))
           .mode(SaveMode.Overwrite)
           .format("parquet")
-          .columnFamily(new ColumnFamily("cf1", Arrays.asList("colA")))
+          .columnFamily(new ColumnFamily("cf1", Arrays.asList(colA)))
           .save(outputPath + "/part1");
 
       Bamboo.write(
@@ -483,7 +486,7 @@ public class BambooReaderTest {
                   rows2, new StructType().add("colB", DataTypes.StringType, false)))
           .mode(SaveMode.Overwrite)
           .format("parquet")
-          .columnFamily(new ColumnFamily("cf2", Arrays.asList("colB")))
+          .columnFamily(new ColumnFamily("cf2", Arrays.asList(colB)))
           .save(outputPath + "/part2");
 
       try {
@@ -505,7 +508,7 @@ public class BambooReaderTest {
 
     @Override
     public void report(
-        String datasetPath, List<Column> columnsRequested, List<ColumnFamily> columnFamiliesRead)
+        String datasetPath, List<Kolumn> columnsRequested, List<ColumnFamily> columnFamiliesRead)
         throws ReporterException {
       familiesUsed.addAll(columnFamiliesRead);
     }

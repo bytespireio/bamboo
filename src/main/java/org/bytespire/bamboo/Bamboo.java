@@ -27,7 +27,8 @@ public class Bamboo {
           .add(Constants.TOTAL_COLUMNS, DataTypes.IntegerType, false)
           .add(Constants.COLUMNS, DataTypes.createArrayType(DataTypes.StringType), false)
           .add(Constants.PARENT_PATH, DataTypes.StringType, false)
-          .add(Constants.PARENT_HASH, DataTypes.StringType, false);
+          .add(Constants.PARENT_HASH, DataTypes.StringType, false)
+          .add(Constants.COLUMN_TYPES, DataTypes.createArrayType(DataTypes.StringType), false);
 
   private static String storePath = "file:///tmp/bamboo";
 
