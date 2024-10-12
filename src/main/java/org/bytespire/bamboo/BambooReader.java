@@ -12,6 +12,7 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.StructType;
 import org.bytespire.bamboo.stats.ReporterException;
 
 public class BambooReader {
@@ -89,8 +90,13 @@ public class BambooReader {
     Utils.debugDataFrame(toReturn, "reconstructed_for_read");
 
     try {
-      // todo fix null columns in reporter
-      statsReporter.report(path, null, columnFamiliesToLoad);
+      StructType schema = toReturn.schema();
+      List<Kolumn> colsRequested = new ArrayList<>();
+      for (String colName : columnsToRead) {
+        DataType colType = schema.apply(colName).dataType();
+        colsRequested.add(new Kolumn(colName, colType));
+      }
+      statsReporter.report(path, colsRequested, columnFamiliesToLoad);
     } catch (ReporterException e) {
       logger.warn("Failed to collect stats for read.", e);
     }

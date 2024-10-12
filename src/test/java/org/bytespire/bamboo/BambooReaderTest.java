@@ -144,9 +144,14 @@ public class BambooReaderTest {
       Assert.assertEquals(1, result.where("cola = 'a1' and colb = 'b1' and colc = 'c1'").count());
 
       myCollector.familiesUsed.sort(Comparator.comparing(ColumnFamily::getName));
+      myCollector.columnsRequested.sort(Comparator.comparing(Kolumn::getName));
       Assert.assertEquals(2, myCollector.familiesUsed.size());
       Assert.assertEquals("cf1", myCollector.familiesUsed.get(0).getName());
       Assert.assertEquals("cf2", myCollector.familiesUsed.get(1).getName());
+      Assert.assertEquals(3, myCollector.columnsRequested.size());
+      Assert.assertEquals("cola", myCollector.columnsRequested.get(0).getName());
+      Assert.assertEquals("colb", myCollector.columnsRequested.get(1).getName());
+      Assert.assertEquals("colc", myCollector.columnsRequested.get(2).getName());
     }
   }
 
@@ -501,9 +506,11 @@ public class BambooReaderTest {
   private static class TestReporter implements StatsReporter {
 
     private List<ColumnFamily> familiesUsed = new ArrayList<>();
+    private List<Kolumn> columnsRequested = new ArrayList<>();
 
     private void clear() {
       familiesUsed.clear();
+      columnsRequested.clear();
     }
 
     @Override
@@ -511,6 +518,7 @@ public class BambooReaderTest {
         String datasetPath, List<Kolumn> columnsRequested, List<ColumnFamily> columnFamiliesRead)
         throws ReporterException {
       familiesUsed.addAll(columnFamiliesRead);
+      this.columnsRequested.addAll(columnsRequested);
     }
   }
 }
